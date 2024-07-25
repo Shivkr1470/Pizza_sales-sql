@@ -1,18 +1,18 @@
-CREATE DATABASE Dominos_Pizza;
+create database pizzahut;
 
-USE Dominos_Pizza;
+use pizzahut;
 
 -- Imported Table "pizzas" and "pizza_types" from option "Data Table Import Wizard"
 
 -- Create Table for "orders" table importing
+create table orders (
+order_id int not null,
+order_date date not null,
+order_time time not null,
+primary key(order_id) );
 
-CREATE TABLE orders (
-	order_id INT NOT NULL,
-    date DATE NOT NULL,
-    time TIME NOT NULL
-);
 
-LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/orders.csv'
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.3/Uploads/orders.csv'
 INTO TABLE orders
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
@@ -21,18 +21,14 @@ LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
 --- Importing Table 'order_details'
+create table order_details (
+order_details_id int not null,
+order_id int not null,
+pizza_id text not null,
+quantity int not null,
+primary key(order_details_id) );
 
-CREATE TABLE oder_details (
-	order_details_id INT NOT NULL,
-    order_id INT NOT NULL,
-    pizza_id VARCHAR(50) NOT NULL,
-    quantity INT
-);
-
-ALTER TABLE oder_details
-RENAME TO order_details;
-
-LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/order_details.csv'
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.3/Uploads/order_details.csv'
 INTO TABLE order_details
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
@@ -40,13 +36,6 @@ LINES TERMINATED BY '\n'
 #(order_details_id, order_id, pizza_id, quantity)
 IGNORE 1 ROWS;
 
--- While creating a 'orders' table, we forgot to make order_id column a Primary key Now updating it
-
-ALTER TABLE orders
-ADD PRIMARY KEY (order_id);
-
-ALTER TABLE order_details
-ADD PRIMARY KEY (order_details_id);
 
 -- Questions for Analysis
 
@@ -81,16 +70,10 @@ LIMIT 1;
 
 #Q4. Identify the most common pizza size ordered.
 
-SELECT 
-    pizzas.size, SUM(order_details.quantity) AS quantity
-FROM
-    order_details
-        JOIN
-    pizzas ON pizzas.pizza_id = order_details.pizza_id
-GROUP BY pizzas.size
-ORDER BY quantity DESC
-LIMIT 1;
-
+select pizzas.size, count(order_details.order_details_id) as order_count
+from pizzas join order_details
+on pizzas.pizza_id = order_details.pizza_id
+group by pizzas.size order by order_count desc;
 
 #Q5. List the top 5 most ordered pizza types along with their quantities.
 
@@ -190,6 +173,19 @@ FROM
 GROUP BY pizzas.size
 ORDER BY total_sold DESC
 LIMIT 3;
+
+# Q13.Calculate the percentage contribution of each pizza type to total revenue.
+
+select pizza_types.category,
+round(sum(order_details.quantity * pizzas.price) / (select 
+round(sum(order_details.quantity * pizzas.price ),2) as total_sales
+from order_details join pizzas
+on pizzas.pizza_id = order_details.pizza_id)*100,2) as revenue
+from pizza_types join pizzas
+on pizzas.pizza_type_id = pizza_types.pizza_type_id
+join order_details
+on order_details.pizza_id = pizzas.pizza_id 
+group by pizza_types.category order by revenue desc;
 
 
 
